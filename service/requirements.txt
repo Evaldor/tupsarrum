@@ -1,0 +1,10 @@
+langchain
+langgraph
+langchain_openai
+fastapi
+uvicorn[standard]
+requests
+python-dotenv
+python-json-logger
+imapclient
+python-telegram-bot

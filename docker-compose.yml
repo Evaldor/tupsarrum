@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  ai-tupsarrum:
+    build: ./service
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./service/.env
+    restart: unless-stopped
+    networks:
+      - ai-network
+
+networks:
+  ai-network:
+    driver: bridge
