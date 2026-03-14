@@ -6,9 +6,11 @@ import threading
 import asyncio
 from telegram import Bot
 from telegram.error import TelegramError
+from telegram.request import HTTPXRequest
 #from redis_utils import RedisStateManager
 from graph_utils import GraphManager
 from conversation_state import ConversationState
+
 
 
 logger = logging.getLogger(__name__)
@@ -41,7 +43,15 @@ def split_message(text, max_length=4096):
 
 async def poll_telegram():
     """Обрабатывает поток сообщений в tg Бота."""
-    bot = Bot(token=TELEGRAM_BOT_TOKEN)
+    request = HTTPXRequest(
+        connection_pool_size=20,
+        connect_timeout=30.0,
+        read_timeout=30.0,
+        write_timeout=30.0,
+        pool_timeout=30.0
+    )
+    
+    bot = Bot(token=TELEGRAM_BOT_TOKEN, request=request)
     try:
         await bot.delete_webhook()
     except Exception as e:
@@ -58,11 +68,12 @@ async def poll_telegram():
                     state = prepare_conversation_state(username, request_text)
                     result = await message_graph.ainvoke(state)
 
-                    message_text = result['phrase_ru']
+                    for value in result['final_answer']:
+                        message_text = value
 
-                    messages = split_message(message_text)
-                    for msg in messages:
-                        await bot.send_message(chat_id=chat_id, text=msg)
+                        messages = split_message(message_text)
+                        for msg in messages:
+                            await bot.send_message(chat_id=chat_id, text=msg)
 
                     logger.info("Processed TG message", extra={"chat_id": chat_id, "username": username})
                 
