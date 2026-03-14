@@ -5,8 +5,11 @@ class Message(TypedDict):
     content: str
 
 class Word(TypedDict):
+    order_no: int
     word: str
-    function: str
+    word_type: str
+    word_characteristics: str
+    reasoning: str
 
 class ConversationState(TypedDict):
     
@@ -18,14 +21,16 @@ class ConversationState(TypedDict):
     phrase_ru: str # Фраза на русском для перевода
     context: str # контекст фразы, для более точного смылового перевода
     genre: str # жанр фразы, лирика быт, молитвы, гимны итп
-  
-    # ЭТАП 1: АНАЛИЗ ИСХОДНОГО ТЕКСТА И КОНТЕКСТА
-    step1_analysis_history: List[Message] # История сообщений при исследовании этап 1
+
+    # ЭТАП 1: Деталиализация жанра и контекста
     context_detailed: str # Расширенный контекст для анализа
     genre_detailed: str # Расширенный жанр для анализа
-    phrase_ru_prepared: list[Word]
-    step1_reasoning: str # Развёрнутый ответ на вопрос этапа 1 "почему?"
-    step1_answer: str # Ответ на вопрос этапа 1
 
+    # ЭТАП 2: АНАЛИЗ ИСХОДНОГО ТЕКСТА И КОНТЕКСТА
+    step3_analysis_history: List[Message] # История сообщений при исследовании этапа 1
+    phrase_structure_ru: List[Word] # структура фразы соответствующая нормам аккадского, на русском
+    step3_reasoning: str # Развёрнутый ответ на вопрос этапа 1 "почему?"
 
+    # Технический раздел
+    final_answer: List[str] # ответ на вопрос
     current_node: str # текущий узел

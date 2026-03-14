@@ -19,62 +19,203 @@ class GraphManager:
     def create_message_graph(self):
 
         def analyse_incoming_message(state: ConversationState):
-                """
-                ЭТАП 0: Анализ обращения
-                выделяем из сообщения фразу для перевода и описание контекста и жанра
-                """
-                state['current_node'] = inspect.currentframe().f_code.co_name
-                logger.info(f"==== {state['current_node']} for session {state['user']}")
+            """
+            ЭТАП 0: Анализ обращения
+            выделяем из сообщения фразу для перевода и описание контекста и жанра
+            """
+            state['current_node'] = inspect.currentframe().f_code.co_name
+            logger.info(f"{state['current_node']} for session {state['user']}")
 
-                research_history = []
-                pre_prompt = """
-                    Ты аналитик службы поддержки пользователей со специализацией в лингвистике, литературе и поэзии. 
-                    В сообщении пользователь написал фразу которую хочет перевести а так же указал жанр и контекст фразы для повышения качества перевода.
-                    Твоя задача - выделить из сообщения фразу для перевода, описание контекста, описание жанра. по возможности не добавляя от себя ничего а только используя то что написал пользователь.
-                    Верни ответ строго в формате json:
-                    {
-                        "phrase_ru": "фраза на русском языке которую пользователю требуется перевести"б
-                        "context": "описание контекста фразы для более точного перевода",
-                        "genre": "жанр фразы, например, лирика, молитвы, гимны итп"
-                    }
-                    """
-                # Добавляем системное сообщение
-                research_history.append({"role": "system", "content": pre_prompt})
-                # Добавляем сообщение пользователя в историю
-                research_history.append({"role": "user", "content": state['incoming_message']})
-                #response = self.llm_general.invoke(research_history )
-                #assistant_message = response.content
-
-                assistant_message = self.LLMManager.call(research_history,1.3,"deepseek-chat",True)
-
-                cleaned_text = re.sub(r'^```json\s*|\s*```$', '', assistant_message, flags=re.DOTALL)
-
-                '''
-                    из json возвращенного в качестве ответа извлекаем данные
-                    пример:
-                    '```json\n{\n    "phrase_ru": "я мечтаю о твоих восторженных глазах",\n    "context": "обращение мужчины к возлюбленной женщине",\n    "genre": "любовная лирика, личные письма"\n}\n```'
-                    
-                    '''
-                try:
-                    parsed_json = json.loads(cleaned_text)
-                except json.JSONDecodeError as e:
-                    logger.info(f"Error while parsing json: {assistant_message} for user {state['user']} Error text: {e}")
-
-                return {
-                    "phrase_ru": parsed_json.get("phrase_ru", ""),
-                    "context": parsed_json.get("context", ""),
-                    "genre": parsed_json.get("genre", "")
+            research_history = []
+            pre_prompt = """
+                Ты аналитик службы поддержки пользователей со специализацией в лингвистике, литературе и поэзии. 
+                В сообщении пользователь написал фразу которую хочет перевести а так же указал жанр и контекст фразы 
+                для повышения качества перевода.
+                Твоя задача - выделить из сообщения фразу для перевода, описание контекста, описание жанра, 
+                по возможности не добавляя от себя ничего а только используя то что написал пользователь.
+                Верни ответ строго в формате json:
+                {
+                    "phrase_ru": "фраза на русском языке которую пользователю требуется перевести"б
+                    "context": "описание контекста фразы для более точного перевода",
+                    "genre": "жанр фразы, например, лирика, молитвы, гимны итп"
                 }
+                """
+            # Добавляем системное сообщение
+            research_history.append({"role": "system", "content": pre_prompt})
+            # Добавляем сообщение пользователя в историю
+            research_history.append({"role": "user", "content": state['incoming_message']})
+
+            assistant_message = self.LLMManager.call(research_history,0.8,"deepseek-chat",True)
+
+            try:
+                parsed_json = json.loads(assistant_message)
+            except json.JSONDecodeError as e:
+                logger.error(f"Error while parsing json: {assistant_message} for user {state['user']} Error text: {e}")
+
+            return {
+                "phrase_ru": parsed_json.get("phrase_ru", ""),
+                "context": parsed_json.get("context", ""),
+                "genre": parsed_json.get("genre", "")
+            }
+        
+        def research_context_and_genre(state: ConversationState):
+            """
+            ЭТАП 1: определяем детали контекста и жанра
+            для лучшего перевода надо более подробно описать пользовательский запрос, который как правило упрощенный
+            """
+            state['current_node'] = inspect.currentframe().f_code.co_name
+            logger.info(f"{state['current_node']} for session {state['user']}")
+
+            research_history = []
+            pre_prompt = """
+                Ты ассириолог который в совершенстве знает аккадский и ассиро-вавилонскую клинопись конца средневавилонского периода, 
+                на рубеже катастрофы бронзового века. 
+                Ты знаешь множество текстов того периода, перевеенных с клинописных табличек
+
+                Твоя задача:
+                в полученном сообщении json:
+                {
+                    "phrase_ru": "фраза на русском языке которую пользователю требуется перевести"б
+                    "context": "описание контекста фразы для более точного перевода",
+                    "genre": "жанр фразы, например, лирика, молитвы, гимны итп"
+                }
+                ты должен проанилизировать "context" и "genre" неразрывно с фразой, как одно целое описать более детально 
+                и жанр и контекст, но не более чем на абзац каждый. Описывай так, чтобы они ложились на принятые в те времена жанры, 
+                но при этом сохраняй пожелание пользователя, оно первично.
+
+                Верни ответ строго в формате json:
+                {
+                    "context_detailed": "детализированное и адаптированное описание контекста фразы для более точного перевода",
+                    "genre_detailed": "детализированное и адаптированное описание жанра фразы, например, лирика, молитвы, гимны итп"
+                }
+               """
+            # Добавляем системное сообщение
+            research_history.append({"role": "system", "content": pre_prompt})
+
+            # Добавляем сообщение пользователя в историю
+            data = {
+                "phrase_ru": state["phrase_ru"],
+                "context": state["context"],
+                "genre": state["genre"]
+            }
+            request_json = json.dumps(data, ensure_ascii=False, indent=2)
+
+            research_history.append({"role": "user", "content": request_json})
+
+            assistant_message = self.LLMManager.call(research_history,1.3,"deepseek-chat",True)
+
+            try:
+                parsed_json = json.loads(assistant_message)
+            except json.JSONDecodeError as e:
+                logger.error(f"Error while parsing json: {assistant_message} for user {state['user']} Error text: {e}")
+
+            return {
+                "context_detailed": parsed_json.get("context_detailed", ""),
+                "genre_detailed": parsed_json.get("genre_detailed", "")
+            }
+        
+        def build_phrase_structure(state: ConversationState):
+            """
+            ЭТАП 2: Построение структуры фразы
+            построение структуры фразы, порядка слов и прочее, для подготовки к подбору слов и дальнейшему переводу
+            """
+            state['current_node'] = inspect.currentframe().f_code.co_name
+            logger.info(f"{state['current_node']} for session {state['user']}")
+
+            research_history = []
+            pre_prompt = """
+                Ты ассириолог который в совершенстве знает аккадский и ассиро-вавилонскую клинопись конца средневавилонского периода, 
+                на рубеже катастрофы бронзового века. 
+                Ты занимаешься переводом с русского языка на аккадский средне-вавилонского периода.
+                Ты строишь фразы и проверяешь то что сделал по учебнику Huehnergard John 2011 - A Grammar of Akkadian 3rd edition. 
+
+                Твоя задача:
+                в полученном сообщении json:
+                {
+                    "phrase_ru": "фраза на русском языке которую пользователю требуется перевести"б
+                    "context_detailed": "описание контекста фразы для более точного перевода",
+                    "genre_detailed": "жанр фразы, например, лирика, молитвы, гимны итп"
+                }
+
+                возьми из него фразу на русском языке "phrase_ru" и построй фразу на аккадском языке, 
+                таким образом чтобы слова были русские, но их порядок и структура соответствовали аккадским языковым нормам и синтаксису, 
+                делая то проверяй себя по учебнику Huehnergard John 2011 - A Grammar of Akkadian 3rd edition.
+                
+                Строя фразу на аккадском языке, делай это так, чтобы она соответствовала контексту "context_detailed"
+
+                Строя фразу на аккадском языке, делай это так, чтобы она соответствовала жанру "genre_detailed"
+
+                в качестве ответа верни грамматическую конструкцию итоговой фразы разбитую на составные части.
+
+                Верни ответ строго в формате json, где каждый элемент - то часть фразы:
+                {
+                    "reasonong": "объяснение почему ты предлагаешь именно такую структуру в целом",
+                    "phrase_structure_ru":[
+                        {
+                            "Order_no": "порядковый номер слова в фразе",
+                            "word": "часть грамматической конструкции, слово или предлог",
+                            "word_type": "тип слова, например, существительное, прилагательное, глагол, предлог, союз итп",
+                            "word_characteristics": "характеристики слова, например, ро, число, наклонение, падеж, любая особенность этой части грамматической конструкции которая может быть полезна для перевода на аккадский",
+                            "reasoning": "объяснение почему ты предлагаешь именно такой вариант для этого элемента"
+                        }
+                    ]
+                }
+                """
+            # Добавляем системное сообщение
+            research_history.append({"role": "system", "content": pre_prompt})
+
+            # Добавляем сообщение пользователя в историю
+            data = {
+                "phrase_ru": state["phrase_ru"],
+                "context_detailed": state["context_detailed"],
+                "genre_detailed": state["genre_detailed"]
+            }
+            request_json = json.dumps(data, ensure_ascii=False, indent=2)
+
+            research_history.append({"role": "user", "content": request_json})
+
+            assistant_message = self.LLMManager.call(research_history,1.3,"deepseek-chat",True)
+
+            try:
+                parsed_json = json.loads(assistant_message)
+            except json.JSONDecodeError as e:
+                logger.error(f"Error while parsing json: {assistant_message} for user {state['user']} Error text: {e}")
+
+            return {
+                "step3_analysis_history": research_history,
+                "phrase_structure_ru": parsed_json.get("phrase_structure_ru", []),
+                "step3_reasoning": parsed_json.get("reasoning", "")
+            }
+
+        def prepare_result(state: ConversationState):
+            """
+            ФИНАЛ: Подготовка результата
+            собираем всю цепочку в ответ
+            """
+            answer_queue = []
+            answer_queue.append(f"Фраза для перевода: {state['phrase_ru']}")
+            answer_queue.append(f"Если углубиться в контекст, то: {state['context_detailed']}")
+            answer_queue.append(f"Если углубиться в жанр, то: {state['genre_detailed']}")
+            answer_queue.append(f"Адаптированная для перевода структура фразы: {state['phrase_structure_ru']}  сделал так потому что: {state['step3_reasoning']}")
+            answer_queue.append(f"Перевод готов!")
+            return {
+                "final_answer": answer_queue
+            }
 
         graph = StateGraph(ConversationState)
 
         graph.add_node("analyse_incoming_message", analyse_incoming_message)
-    
+        graph.add_node("research_context_and_genre", research_context_and_genre)
+        graph.add_node("build_phrase_structure", build_phrase_structure)
+        graph.add_node("prepare_result", prepare_result)
+
         graph.set_entry_point("analyse_incoming_message")
-        graph.add_edge("analyse_incoming_message", END)
+        graph.add_edge("analyse_incoming_message", "research_context_and_genre")
+        graph.add_edge("research_context_and_genre", "build_phrase_structure")
+        graph.add_edge("build_phrase_structure", "prepare_result")
+        graph.add_edge("prepare_result", END)
     
         return graph.compile()
-    
 
     '''
     def create_message_graph(self):
