@@ -1,8 +1,9 @@
 langchain
 langgraph
 langchain_openai
+openai
 fastapi
-uvicorn[standard]
+uvicorn
 requests
 python-dotenv
 python-json-logger

@@ -5,28 +5,16 @@ import logging_config  # Must be first
 import logging
 from typing import Literal
 from langgraph.graph import StateGraph, END
-from langchain_openai import ChatOpenAI
-import httpx
 from conversation_state import ConversationState
+from llm_utils import LLMManager
+
 
 logger = logging.getLogger(__name__)
 
 class GraphManager:
 
     def __init__(self):
-        # =============================
-        # 🔧 Настройка LLM (языковые модели)
-        # =============================
-        self.llm_general = ChatOpenAI(
-            base_url="https://llm-serving.yooteam.ru/v1",  
-            api_key="-",
-            temperature=0.7,
-            max_tokens=1000,
-            timeout=None,
-            max_retries=3,
-            model="general",
-            http_client=httpx.Client(verify=False)
-        )
+        self.LLMManager = LLMManager()
 
     def create_message_graph(self):
 
@@ -54,8 +42,11 @@ class GraphManager:
                 research_history.append({"role": "system", "content": pre_prompt})
                 # Добавляем сообщение пользователя в историю
                 research_history.append({"role": "user", "content": state['incoming_message']})
-                response = self.llm_general.invoke(research_history)
-                assistant_message = response.content
+                #response = self.llm_general.invoke(research_history )
+                #assistant_message = response.content
+
+                assistant_message = self.LLMManager.call(research_history,1.3,"deepseek-chat",True)
+
                 cleaned_text = re.sub(r'^```json\s*|\s*```$', '', assistant_message, flags=re.DOTALL)
 
                 '''

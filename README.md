@@ -24,15 +24,15 @@ docker-compose up --build
 4. Создать и запустить виртуальное окружение
 ```
 pip install virtualenv
-virtualenv venv -p C:\Users\smirnovanton\AppData\Local\Programs\Python\Python313\python.exe
+virtualenv venv -p C:\Users\eva\AppData\Local\Programs\Python\Python313\python.exe
 venv\Scripts\activate.bat
-pip3 install --upgrade pip
-pip3 install -r requirements.txt
+pip install --upgrade pip
+pip install -r requirements.txt
 ```
 1. запустить сервис
 ```
 cd service
-uvicorn app:app --host 0.0.0.0 --port 8000
+uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 1. отправить сообщение в бота
 
