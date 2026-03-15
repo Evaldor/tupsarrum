@@ -70,7 +70,7 @@ async def poll_telegram():
 
                     for value in result['final_answer']:
                         message_text = value
-
+                        logger.info("answer: ", extra={"message_text": message_text})
                         messages = split_message(message_text)
                         for msg in messages:
                             await bot.send_message(chat_id=chat_id, text=msg)

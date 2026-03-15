@@ -4,12 +4,20 @@ class Message(TypedDict):
     role: str
     content: str
 
+class WordAccadian(TypedDict):
+    veight: int
+    word_accadian: str
+    word_accadian_meaning: str
+    vacabulary_source: str
+    reasoning_accadian: str
+
 class Word(TypedDict):
     order_no: int
     word: str
     word_type: str
     word_characteristics: str
-    reasoning: str
+    word_reasoning: str
+    relevant_accadian_words: List[WordAccadian]
 
 class ConversationState(TypedDict):
     
@@ -27,9 +35,13 @@ class ConversationState(TypedDict):
     genre_detailed: str # Расширенный жанр для анализа
 
     # ЭТАП 2: АНАЛИЗ ИСХОДНОГО ТЕКСТА И КОНТЕКСТА
-    step3_analysis_history: List[Message] # История сообщений при исследовании этапа 1
+    step2_analysis_history: List[Message] # История сообщений при исследовании этапа 1
     phrase_structure_ru: List[Word] # структура фразы соответствующая нормам аккадского, на русском
-    step3_reasoning: str # Развёрнутый ответ на вопрос этапа 1 "почему?"
+    step2_reasoning: str # Развёрнутый ответ на вопрос этапа 2 "почему?"
+
+    # ЭТАП 3: ЛЕКСИЧЕСКИЙ ПОДБОР (СЛОВАРИ)
+    step3_lexcon_history: List[Message] # История сообщений при исследовании этапа 1
+    phrase_accadian_structure_ru: str
 
     # Технический раздел
     final_answer: List[str] # ответ на вопрос

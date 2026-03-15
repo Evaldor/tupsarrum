@@ -30,9 +30,10 @@ class GraphManager:
             pre_prompt = """
                 Ты аналитик службы поддержки пользователей со специализацией в лингвистике, литературе и поэзии. 
                 В сообщении пользователь написал фразу которую хочет перевести а так же указал жанр и контекст фразы 
-                для повышения качества перевода.
+                для повышения качества перевода. 
                 Твоя задача - выделить из сообщения фразу для перевода, описание контекста, описание жанра, 
                 по возможности не добавляя от себя ничего а только используя то что написал пользователь.
+                Отвечая используй русский язык.
                 Верни ответ строго в формате json:
                 {
                     "phrase_ru": "фраза на русском языке которую пользователю требуется перевести"б
@@ -45,7 +46,7 @@ class GraphManager:
             # Добавляем сообщение пользователя в историю
             research_history.append({"role": "user", "content": state['incoming_message']})
 
-            assistant_message = self.LLMManager.call(research_history,0.8,"deepseek-chat",True)
+            assistant_message = self.LLMManager.call(research_history,0.8,"deepseek-reasoner",True)
 
             try:
                 parsed_json = json.loads(assistant_message)
@@ -69,9 +70,9 @@ class GraphManager:
             research_history = []
             pre_prompt = """
                 Ты ассириолог который в совершенстве знает аккадский и ассиро-вавилонскую клинопись конца средневавилонского периода, 
-                на рубеже катастрофы бронзового века. 
-                Ты знаешь множество текстов того периода, перевеенных с клинописных табличек
-
+                на рубеже катастрофы бронзового века. Ты знаешь множество текстов того периода, перевеенных с клинописных табличек, разбираешься
+                в жанрах, литературе и особенностях письменного творечства того периода на ближнем востоке.
+                Кроме того ты разбираешься в литературе и истории литературы в целом.
                 Твоя задача:
                 в полученном сообщении json:
                 {
@@ -79,14 +80,19 @@ class GraphManager:
                     "context": "описание контекста фразы для более точного перевода",
                     "genre": "жанр фразы, например, лирика, молитвы, гимны итп"
                 }
-                ты должен проанилизировать "context" и "genre" неразрывно с фразой, как одно целое описать более детально 
-                и жанр и контекст, но не более чем на абзац каждый. Описывай так, чтобы они ложились на принятые в те времена жанры, 
-                но при этом сохраняй пожелание пользователя, оно первично.
+                1. ты должен проанилизировать "context"(контекст) и дать его расширенное описание. Опиши участников обстоятельства и смысловые тонкости их взаимодействия.
+                анализируй контекст с учетом "genre"(жанра) и самой фразой для перевода. Давай расширенное описание контекста так, как буд-то ты пытаешься помочь переводчику
+                правильно определить нюансы и тонкости фразы и подобрать верный перевод.
+                2. ты должен проанилизировать "genre"(жанр) и дать его расширенное описание. Опиши жанр фразы, а так же какому жанру из существовавших в ассиро-вавилонской 
+                клинописи конца средневавилонского периода современный жанр лучше соотвествует,анализируй жанр с учетом "context"(контекста) и самой фразой для перевода. 
+                Давай расширенное описание жанра так, как буд-то ты пытаешься помочь переводчику
+
+                Отвечая используй русский язык.
 
                 Верни ответ строго в формате json:
                 {
-                    "context_detailed": "детализированное и адаптированное описание контекста фразы для более точного перевода",
-                    "genre_detailed": "детализированное и адаптированное описание жанра фразы, например, лирика, молитвы, гимны итп"
+                    "context_detailed": "детализированное и адаптированное описание контекста фразы для более точного перевода, не более чем один или два абзаца текста",
+                    "genre_detailed": "детализированное и адаптированное описание жанра фразы, например, лирика, молитвы, гимны итп, не более чем один или два абзаца текста"
                 }
                """
             # Добавляем системное сообщение
@@ -102,7 +108,7 @@ class GraphManager:
 
             research_history.append({"role": "user", "content": request_json})
 
-            assistant_message = self.LLMManager.call(research_history,1.3,"deepseek-chat",True)
+            assistant_message = self.LLMManager.call(research_history,1.5,"deepseek-reasoner",True)
 
             try:
                 parsed_json = json.loads(assistant_message)
@@ -132,33 +138,68 @@ class GraphManager:
                 Твоя задача:
                 в полученном сообщении json:
                 {
-                    "phrase_ru": "фраза на русском языке которую пользователю требуется перевести"б
+                    "phrase_ru": "фраза на русском языке которую пользователю требуется перевести",
                     "context_detailed": "описание контекста фразы для более точного перевода",
                     "genre_detailed": "жанр фразы, например, лирика, молитвы, гимны итп"
                 }
 
                 возьми из него фразу на русском языке "phrase_ru" и построй фразу на аккадском языке, 
-                таким образом чтобы слова были русские, но их порядок и структура соответствовали аккадским языковым нормам и синтаксису, 
+                таким образом чтобы слова были русские, но их порядок и структура соответствовали аккадским языковым нормам и синтаксису,
                 делая то проверяй себя по учебнику Huehnergard John 2011 - A Grammar of Akkadian 3rd edition.
-                
+                Это очень важно, построй грамматическую конструкцию итоговой фразы строго по языковым нормам 
+                ассиро-вавилонского диалекта аккадского языка средневавилонского периода.
+                Сверь спорные моменты по KEY TO A GRAMMAR OF AKKADIAN (Huehnergard, 2013), чтобы убедиться в правильности выполнения упражнений (если применимо).
+
+                Вот основные правила построения предложений в аккадском языке (на основе грамматических стандартов ORACC, соответствующих средневавилонскому периоду):
+
+                    1. Базовый порядок слов (SOV): Глагол всегда стоит в конце предложения. Правильная последовательность: Подлежащее → Дополнение → Глагол. (Пример: Собака человека укусила).
+
+                    2. Позиция прилагательного: Прилагательное ставится после существительного, которое оно описывает, и полностью согласуется с ним в роде, числе и падеже.
+
+                    3. Позиция определения (генитив): Определение (родительный падеж) всегда стоит после определяемого слова. Используется либо status constructus, либо предлог ša.
+
+                    4. Позиция наречий и частиц: Наречия и отрицания (ul, lā) ставятся непосредственно перед словом, к которому относятся (чаще всего перед глаголом).
+
+                    5. Именное предложение: Предложение может быть построено без глагола. В таком случае подлежащее и именное сказуемое (оба в именительном падеже) просто стоят рядом (как в русском "он — царь").
+
+                    6. Придаточные определительные: Вводятся местоимением ša. Глагол внутри такого придаточного предложения обязательно стоит в форме субъюнктива.
+
+                    7. Условные предложения: Начинаются с šumma ("если"). В условии глагол отрицается частицей lā, а в главном следствии — частицей ul.
+
+                    8. Связь частей предложения: Для соединения предложений (в значении "и (затем)") к первому глаголу присоединяется суффикс -ma.
+
                 Строя фразу на аккадском языке, делай это так, чтобы она соответствовала контексту "context_detailed"
 
                 Строя фразу на аккадском языке, делай это так, чтобы она соответствовала жанру "genre_detailed"
 
                 в качестве ответа верни грамматическую конструкцию итоговой фразы разбитую на составные части.
 
+                Отвечая используй русский язык.
+
+                Порядок слов в "phrase_structure_ru", структура фразы и прочее должны соответствовать аккадским языковым нормам и синтаксису, 
+                как это описано в Huehnergard John 2011 - A Grammar of Akkadian 3rd edition
+
+                Этап самопроверки, построив фразу проверь в ней:
+                    ○ Порядок слов (обычно SOV).
+                    ○ Падежи существительных (именительный, родительный, винительный).
+                    ○ Времена и наклонения глаголов (претерит, перфект, презенс, статив, ветив/прогибитив и т.д.).
+                    ○ Суффиксы (притяжательные, объектные).
+                    ○ Для каждой грамматической формы, которую ты используешь, обратись к учебнику Huehnergard John. 2011. A Grammar of Akkadian (3rd edition). Найди соответствующий параграф и убедись, что форма построена верно. Особое внимание удели парадигмам спряжения и склонения.
+                    ○ Сверь спорные моменты по KEY TO A GRAMMAR OF AKKADIAN (Huehnergard, 2013), чтобы убедиться в правильности выполнения упражнений (если применимо).
+
                 Верни ответ строго в формате json, где каждый элемент - то часть фразы:
                 {
-                    "reasonong": "объяснение почему ты предлагаешь именно такую структуру в целом",
+                    
                     "phrase_structure_ru":[
                         {
-                            "Order_no": "порядковый номер слова в фразе",
+                            "order_no": "порядковый номер слова в фразе",
                             "word": "часть грамматической конструкции, слово или предлог",
                             "word_type": "тип слова, например, существительное, прилагательное, глагол, предлог, союз итп",
-                            "word_characteristics": "характеристики слова, например, ро, число, наклонение, падеж, любая особенность этой части грамматической конструкции которая может быть полезна для перевода на аккадский",
-                            "reasoning": "объяснение почему ты предлагаешь именно такой вариант для этого элемента"
+                            "word_characteristics": "характеристики слова, например, род, число, наклонение, падеж, любая особенность этой части грамматической конструкции которая может быть полезна для перевода на аккадский",
+                            "word_reasoning": "объяснение почему ты предлагаешь именно такой вариант для этого элемента"
                         }
-                    ]
+                    ],
+                    "phrase_reasonong": "объяснение почему ты предлагаешь именно такую структуру в целом с точки зрения праил аккадского языка"
                 }
                 """
             # Добавляем системное сообщение
@@ -174,7 +215,7 @@ class GraphManager:
 
             research_history.append({"role": "user", "content": request_json})
 
-            assistant_message = self.LLMManager.call(research_history,1.3,"deepseek-chat",True)
+            assistant_message = self.LLMManager.call(research_history,1.3,"deepseek-reasoner",True)
 
             try:
                 parsed_json = json.loads(assistant_message)
@@ -182,9 +223,101 @@ class GraphManager:
                 logger.error(f"Error while parsing json: {assistant_message} for user {state['user']} Error text: {e}")
 
             return {
-                "step3_analysis_history": research_history,
+                "step2_analysis_history": research_history,
                 "phrase_structure_ru": parsed_json.get("phrase_structure_ru", []),
-                "step3_reasoning": parsed_json.get("reasoning", "")
+                "step2_reasoning": parsed_json.get("phrase_reasonong", "")
+            }
+
+        def work_with_vacabulares(state: ConversationState):
+            """
+            ЭТАП 3: ЛЕКСИЧЕСКИЙ ПОДБОР (СЛОВАРИ)
+            подбираем подходящие слова по словарям
+            """
+            state['current_node'] = inspect.currentframe().f_code.co_name
+            logger.info(f"{state['current_node']} for session {state['user']}")
+
+            pre_prompt = """Ты ассириолог который в совершенстве знает аккадский и ассиро-вавилонскую клинопись конца средневавилонского периода, 
+                на рубеже катастрофы бронзового века. Ты занимаешься переводом с русского языка на аккадский средне-вавилонского периода.
+
+                Твоя задача:
+                для полученного сообщениия в формате json:
+                {
+                    "phrase_accadian_structure_ru": "фраза на русском языке построенная по правилам аккадского языка",
+                    "context_detailed": "описание контекста фразы для более точного перевода",
+                    "genre_detailed": "жанр фразы, например, лирика, молитвы, гимны итп",
+                    "word": "слово для которого надо подобрать варианты перевода"
+                    "word_type": "тип слова, например, существительное, прилагательное, глагол, предлог, союз итп"
+                    "word_characteristics": "характеристики слова, например, род, число, наклонение, падеж, любая особенность этой части грамматической конструкции которая может быть полезна для перевода на аккадский"
+                    "word_reasoning: "объяснение почему ты предлагаешь именно такой вариант для этого элемента"
+                }
+
+                Выполнить действия:
+                Для каждого слова из фразы для перевода подбери не более чем 3 (очень важно подобрать не более чем 3 варианта) наиболее подходящих значений по словарям, 
+                с обоснованием какой из них больше подходит в связи с контекстом("context_detailed") и жанром("genre_detailed")
+
+                В первую очередь используй Black, Jeremy; George, Andrew; Postgate, Nicholas. A Concise Dictionary of Akkadian (CDA). Он даст основное значение и отсылки.
+
+                Для углубленной проверки значений, контекстов употребления и особенно для подтверждения, что слово существовало именно в средневавилонский период, 
+                обратись к Chicago Assyrian Dictionary (CAD). Найди соответствующую статью и убедись, что среди цитат есть примеры из средневавилонских текстов.
+
+                Ищи подходящие слова по всем томам CAD (очень важно брать не только первый попавшийся вариант, но искать по всем частям CAD)
+                , для того чтобы подобрать наиболее подходящий под контекст("context_detailed") и жанр("genre_detailed") вариант
+
+                Фиксация: Для каждого аккадского слова в транслитерации укажи, из какого словаря и на какую статью ты опираешься.
+
+                Отвечая используй русский язык.
+
+                Верни ответ строго в формате json, где каждый элемент - то часть фразы:
+                {
+                    "relevant_accadian_words":[
+                        {
+                            "word_accadian": "аккадское слово ассировавилонского диалекта, средневавилонского периода, записанное транслитерацией, слоговой записью",
+                            "word_accadian_meaning": "описание значения слова по аккадскому словарю",
+                            "veight": "Значение от 0 до 100, обозначающее на сколько относительно других вариантов это слово подходит в качестве перевода, чем больше тем лучше подходит",
+                            "vacabulary_source": "Ссылка на словарь, с указанием раздела, откуда взято аккадское слово"
+                            "reasoning_accadian": "объяснение почему ты выбрал этот вариант"
+                        }
+                    ]
+                }
+                """
+
+            phrase_accadian_structure_ru = ""
+            phrase_structure_ru = state['phrase_structure_ru']
+            
+            for word in phrase_structure_ru:
+                phrase_accadian_structure_ru = phrase_accadian_structure_ru +" "+word["word"]
+
+            # Выполняем подбор для каждого слова из фразы
+            for word in phrase_structure_ru:
+                research_history = []
+                # Добавляем системное сообщение
+                research_history.append({"role": "system", "content": pre_prompt})
+
+                data = {
+                    "phrase_accadian_structure_ru": phrase_accadian_structure_ru,
+                    "context_detailed": state["context_detailed"],
+                    "genre_detailed": state["genre_detailed"],
+                    "word": word['word'],
+                    "word_type": word['word_type'],
+                    "word_characteristics": word['word_characteristics'],
+                    "word_reasoning": word['word_reasoning']
+                }
+                request_json = json.dumps(data, ensure_ascii=False, indent=2)
+
+                research_history.append({"role": "user", "content": request_json})
+
+                assistant_message = self.LLMManager.call(research_history,1.3,"deepseek-reasoner",True)
+
+                try:
+                    parsed_json = json.loads(assistant_message)
+                except json.JSONDecodeError as e:
+                    logger.error(f"Error while parsing json: {assistant_message} for user {state['user']} Error text: {e}")
+
+                word["relevant_accadian_words"] = parsed_json.get("relevant_accadian_words", [])
+
+            return {
+                "phrase_structure_ru": phrase_structure_ru,
+                "phrase_accadian_structure_ru": phrase_accadian_structure_ru
             }
 
         def prepare_result(state: ConversationState):
@@ -192,11 +325,19 @@ class GraphManager:
             ФИНАЛ: Подготовка результата
             собираем всю цепочку в ответ
             """
+            state['current_node'] = inspect.currentframe().f_code.co_name
+            logger.info(f"{state['current_node']} for session {state['user']}")
+
             answer_queue = []
             answer_queue.append(f"Фраза для перевода: {state['phrase_ru']}")
             answer_queue.append(f"Если углубиться в контекст, то: {state['context_detailed']}")
             answer_queue.append(f"Если углубиться в жанр, то: {state['genre_detailed']}")
-            answer_queue.append(f"Адаптированная для перевода структура фразы: {state['phrase_structure_ru']}  сделал так потому что: {state['step3_reasoning']}")
+            answer_queue.append(f"Адаптированная для перевода структура фразы: {state['phrase_structure_ru']}")
+            answer_queue.append(f"сделал так потому что: {state['step2_reasoning']}")
+            answer_queue.append(f"я подобрал следующий слова для перевода каждого элемента")
+            for word in state['phrase_structure_ru']:
+                answer_queue.append(f"Слово № {word['order_no']} {word['word']}")
+                answer_queue.append(f"Варианты перевода: {word['relevant_accadian_words']}")
             answer_queue.append(f"Перевод готов!")
             return {
                 "final_answer": answer_queue
@@ -207,12 +348,15 @@ class GraphManager:
         graph.add_node("analyse_incoming_message", analyse_incoming_message)
         graph.add_node("research_context_and_genre", research_context_and_genre)
         graph.add_node("build_phrase_structure", build_phrase_structure)
+        graph.add_node("work_with_vacabulares", work_with_vacabulares)
+        
         graph.add_node("prepare_result", prepare_result)
 
         graph.set_entry_point("analyse_incoming_message")
         graph.add_edge("analyse_incoming_message", "research_context_and_genre")
         graph.add_edge("research_context_and_genre", "build_phrase_structure")
-        graph.add_edge("build_phrase_structure", "prepare_result")
+        graph.add_edge("build_phrase_structure", "work_with_vacabulares")
+        graph.add_edge("work_with_vacabulares", "prepare_result")
         graph.add_edge("prepare_result", END)
     
         return graph.compile()
